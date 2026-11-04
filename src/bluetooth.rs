@@ -387,6 +387,12 @@ const HSP_HS_UUID: Uuid = Uuid::from_u128(0x0000110800001000800000805f9b34fb);
 /// (backoff starts at 1 s and doubles up to this). Set once at startup from the config.
 pub static BT_CONNECT_MAX_DELAY_SECS: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(15);
 
+/// bt_connect_attempt_timeout_secs: per-attempt limit (0 = off) for "connect to the known phone".
+/// An absent phone makes BlueZ wait ~50 s (br-connection-timeout) before the next attempt, so a phone
+/// that comes into range mid-attempt is only noticed on the next round. With a short limit the Pi
+/// aborts (Disconnect) and tries again quickly. Set once at startup from the config.
+pub static BT_CONNECT_ATTEMPT_TIMEOUT_SECS: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+
 pub static BT_SCO_HSP_RESPONDER: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
 
 /// Minimal Headset-role AT responder. Android only routes call audio to a headset whose control
@@ -6264,7 +6270,39 @@ impl Bluetooth {
                     NAME, addr, dev_name, j, ATTEMPTS
                 );
                 if let Ok(true) = device.is_paired().await {
-                    match device.connect_profile(&HSP_AG_UUID).await {
+                    let limite = BT_CONNECT_ATTEMPT_TIMEOUT_SECS.load(std::sync::atomic::Ordering::Relaxed);
+                    let resultado = if limite > 0 {
+                        match tokio::time::timeout(
+                            Duration::from_secs(limite),
+                            device.connect_profile(&HSP_AG_UUID),
+                        )
+                        .await
+                        {
+                            Ok(r) => r,
+                            Err(_) => {
+                                // aborta a tentativa pendente no BlueZ e libera para a próxima rodada
+                                let _ = tokio::time::timeout(Duration::from_secs(3), device.disconnect()).await;
+                                Err(bluer::Error {
+                                    kind: bluer::ErrorKind::Failed,
+                                    message: format!("tentativa abortada após {} s sem resposta do celular", limite),
+                                })
+                            }
+                        }
+                    } else {
+                        device.connect_profile(&HSP_AG_UUID).await
+                    };
+                    // Depois de abortar uma tentativa pendente (timeout acima), o BlueZ pode devolver sucesso
+                    // sem o celular estar conectado de verdade; só vale se o dispositivo está conectado.
+                    let resultado = match resultado {
+                        Ok(_) if limite > 0 && !device.is_connected().await.unwrap_or(false) => {
+                            Err(bluer::Error {
+                                kind: bluer::ErrorKind::Failed,
+                                message: "BlueZ devolveu sucesso mas o celular não está conectado".to_string(),
+                            })
+                        }
+                        outro => outro,
+                    };
+                    match resultado {
                         Ok(_) => {
                             info!(
                                 "{} 🔗 Successfully connected to device: {}{}",
