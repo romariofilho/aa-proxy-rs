@@ -5069,7 +5069,7 @@ mod tests {
             injected_service_ids: HashSet::new(),
             injected_channels: HashSet::new(),
             injected_nav_channel: None,
-        injected_nav_seen: HashSet::new(),
+            injected_nav_seen: HashSet::new(),
             injected_bluetooth_channel: None,
             bt_real_hu_passthrough_channel_open: false,
             injected_media_display: HashMap::new(),
