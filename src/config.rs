@@ -690,7 +690,7 @@ pub struct AppConfig {
     /// The wait doubles from 1 s up to this value; lower = the Pi insists more often. Default: 15.
     pub bt_connect_max_delay_secs: u16,
     /// Per-attempt limit (seconds, 0 = off) when the Pi connects to the known phone: abort a pending
-    /// attempt after this long instead of waiting ~50 s for BlueZ to give up. Default: 0.
+    /// attempt after this long instead of the built-in 20 s. Clamped to 5-20. Default: 0.
     pub bt_connect_attempt_timeout_secs: u16,
     pub mitm: bool,
     /// TLS backend used for MITM: "rustls" (default) or "openssl".
@@ -1654,7 +1654,8 @@ impl AppConfig {
         doc["bt_sco"] = value(self.bt_sco);
         doc["bt_sco_keep_bluetooth_alive"] = value(self.bt_sco_keep_bluetooth_alive);
         doc["bt_sco_hsp_responder"] = value(self.bt_sco_hsp_responder);
-        doc["bt_sco_media_bridge_start_on_timeout"] = value(self.bt_sco_media_bridge_start_on_timeout);
+        doc["bt_sco_media_bridge_start_on_timeout"] =
+            value(self.bt_sco_media_bridge_start_on_timeout);
         doc["bt_sco_media_bridge"] = value(self.bt_sco_media_bridge);
         doc["bt_sco_media_bridge_audio_type"] =
             value(self.bt_sco_media_bridge_audio_type.to_string());

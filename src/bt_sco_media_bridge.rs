@@ -28,7 +28,8 @@ const DEFAULT_START_TIMEOUT_MS: u32 = 1500;
 /// because `start_timeout_ms` elapsed with a silent SCO downlink (e.g. voice recording, which opens
 /// SCO but carries no far-end audio); it waits for real audio. Avoids hijacking the media channel
 /// (music) with silence and a later STOP. Set once at startup from the config.
-pub static START_ON_TIMEOUT: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(true);
+pub static START_ON_TIMEOUT: std::sync::atomic::AtomicBool =
+    std::sync::atomic::AtomicBool::new(true);
 
 struct Runtime {
     tx: Mutex<Option<Sender<Packet>>>,

@@ -902,13 +902,27 @@ impl Biquad {
     fn lowpass(f: f64, fs: f64) -> Self {
         let w = 2.0 * std::f64::consts::PI * f / fs;
         let (c, a) = (w.cos(), w.sin() / 2f64.sqrt());
-        Self::new((1.0 - c) / 2.0, 1.0 - c, (1.0 - c) / 2.0, 1.0 + a, -2.0 * c, 1.0 - a)
+        Self::new(
+            (1.0 - c) / 2.0,
+            1.0 - c,
+            (1.0 - c) / 2.0,
+            1.0 + a,
+            -2.0 * c,
+            1.0 - a,
+        )
     }
 
     fn highpass(f: f64, fs: f64) -> Self {
         let w = 2.0 * std::f64::consts::PI * f / fs;
         let (c, a) = (w.cos(), w.sin() / 2f64.sqrt());
-        Self::new((1.0 + c) / 2.0, -(1.0 + c), (1.0 + c) / 2.0, 1.0 + a, -2.0 * c, 1.0 - a)
+        Self::new(
+            (1.0 + c) / 2.0,
+            -(1.0 + c),
+            (1.0 + c) / 2.0,
+            1.0 + a,
+            -2.0 * c,
+            1.0 - a,
+        )
     }
 
     fn low_shelf(f: f64, gain_db: f64, fs: f64) -> Self {
@@ -928,7 +942,9 @@ impl Biquad {
     }
 
     fn process(&mut self, v: f32) -> f32 {
-        let o = self.b0 * v + self.b1 * self.x1 + self.b2 * self.x2 - self.a1 * self.y1 - self.a2 * self.y2;
+        let o = self.b0 * v + self.b1 * self.x1 + self.b2 * self.x2
+            - self.a1 * self.y1
+            - self.a2 * self.y2;
         self.x2 = self.x1;
         self.x1 = v;
         self.y2 = self.y1;
@@ -963,10 +979,13 @@ impl EnhancedVoice {
         let mut taps: Vec<f64> = (0..n)
             .map(|i| {
                 let x = 2.0 * fc / fs * (i as f64 - (n as f64 - 1.0) / 2.0);
-                let sinc = if x == 0.0 { 1.0 } else { (std::f64::consts::PI * x).sin() / (std::f64::consts::PI * x) };
+                let sinc = if x == 0.0 {
+                    1.0
+                } else {
+                    (std::f64::consts::PI * x).sin() / (std::f64::consts::PI * x)
+                };
                 let m = (n - 1) as f64;
-                let blackman = 0.42
-                    - 0.5 * (2.0 * std::f64::consts::PI * i as f64 / m).cos()
+                let blackman = 0.42 - 0.5 * (2.0 * std::f64::consts::PI * i as f64 / m).cos()
                     + 0.08 * (4.0 * std::f64::consts::PI * i as f64 / m).cos();
                 sinc * blackman
             })
